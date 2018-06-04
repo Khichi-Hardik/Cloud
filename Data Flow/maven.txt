@@ -1,0 +1,27 @@
+  -- maven project creation  
+mvn archetype:generate \
+  -DarchetypeArtifactId=google-cloud-dataflow-java-archetypes-examples \
+  -DarchetypeGroupId=com.google.cloud.dataflow \
+  -DarchetypeVersion=2.4.0 \
+  -DgroupId=com.example \
+  -DartifactId=first-dataflow \
+  -Dversion="0.1" \
+  -DinteractiveMode=false \
+  -Dpackage=com.example
+    
+  --create new bucket in gcs
+gsutil mb gs://hardik-tests
+
+  --run project locally
+mvn compile exec:java \
+  -Dexec.mainClass=com.example.WordCount \
+  -Dexec.args="--output=./output/"
+
+    -- run maven project
+mvn compile exec:java \
+  -Dexec.mainClass=com.example.WordCount \
+  -Dexec.args="--project=hardik-tests \
+  --stagingLocation=gs://hardik-tests/staging/ \
+  --output=gs://hardik-tests/output \
+  --runner=DataflowRunner \
+  --jobName=dataflow-intro"
