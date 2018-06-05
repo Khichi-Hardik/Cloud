@@ -46,30 +46,34 @@ def run(argv=None):
         '--temp_location=gs://hardik_rategain/tmp',
         '--job_name=job1',
     ])
-    
-    # We use the save_main_session option because one or more DoFn's in this
-    # workflow rely on global context (e.g., a module imported at module level).
-    pipeline_options = PipelineOptions(pipeline_args)
-    pipeline_options.view_as(SetupOptions).save_main_session = True
-    with beam.Pipeline(options=pipeline_options) as p:
-        # Count the occurrences of each word.
-        counts = (
-            lines
-            | 'Split' >> (beam.FlatMap(lambda x: re.findall(r'[A-Za-z\']+', x))
-                          .with_output_types(six.text_type))
-            | 'PairWithOne' >> beam.Map(lambda x: (x, 1))
-            | 'GroupAndSum' >> beam.CombinePerKey(sum))
 
-        # Format the counts into a PCollection of strings.
-        def format_result(word_count):
-            (word, count) = word_count
-        return '%s: %s' % (word, count)
+  # We use the save_main_session option because one or more DoFn's in this
+  # workflow rely on global context (e.g., a module imported at module level).
+  pipeline_options = PipelineOptions(pipeline_args)
+  pipeline_options.view_as(SetupOptions).save_main_session = True
+  with beam.Pipeline(options=pipeline_options) as p:
 
-        output = counts | 'Format' >> beam.Map(format_result)
+    # Read the text file[pattern] into a PCollection.
+    lines = p | ReadFromText(known_args.input)
 
-        # Write the output using a "Write" transform that has side effects.
-        # pylint: disable=expression-not-assigned
-        output | WriteToText(known_args.output)
+    # Count the occurrences of each word.
+    counts = (
+        lines
+        | 'Split' >> (beam.FlatMap(lambda x: re.findall(r'[A-Za-z\']+', x))
+                      .with_output_types(six.text_type))
+        | 'PairWithOne' >> beam.Map(lambda x: (x, 1))
+        | 'GroupAndSum' >> beam.CombinePerKey(sum))
+
+    # Format the counts into a PCollection of strings.
+    def format_result(word_count):
+      (word, count) = word_count
+      return '%s: %s' % (word, count)
+
+    output = counts | 'Format' >> beam.Map(format_result)
+
+    # Write the output using a "Write" transform that has side effects.
+    # pylint: disable=expression-not-assigned
+    output | WriteToText(known_args.output)
 
 
 if __name__ == '__main__':
